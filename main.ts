@@ -97,6 +97,15 @@ for await (const line of lines) {
 
   if (bar !== null) {
     const close = Number(bar.c);
+    // Degenerate bars (non-finite or non-positive close) carry no signal:
+    // skip the indicator update for this bar rather than feeding NaN/0
+    // into the EMAs, which would corrupt every later crossover.
+    if (!Number.isFinite(close) || close <= 0) {
+      process.stdout.write(
+        JSON.stringify({ type: 'reply', seq, orders }) + '\n',
+      );
+      continue;
+    }
     // SMA(120) over the closes before this bar, like the backtest.
     const sma =
       closes.length === SMA_SPAN
